@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  IamUser:
+    Type: String
+    Description: Full ARN for the IAM user used to deploy
+
+Resources:
+
+  # the top-level beanstalk application. It deploys an ECS cluster in an
+  # autoscaling group, and connects up an ELB.
+  whodis:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      Description: Whodis Elastic Beanstack
+
+  # the beanstalk app configuration
+  whodisConfigurationTemplate:
+    Type: AWS::ElasticBeanstalk::ConfigurationTemplate
+    Properties:
+      ApplicationName: !Ref whodis
+      Description: whodis Configuration Template
+      OptionSettings:
+      - Namespace: aws:autoscaling:asg
+        OptionName: MinSize
+        Value: '1'
+      - Namespace: aws:autoscaling:asg
+        OptionName: MaxSize
+        Value: '2'
+
+      # important: the instance role configured on the ECS cluster instances.
+      # This is defined below, and, among other things allows the instances to
+      # pull from our ECR docker registry.
+      - Namespace: aws:autoscaling:launchconfiguration
+        OptionName: IamInstanceProfile
+        Value: !Ref whodisInstanceProfile
+
+      - Namespace: aws:elasticbeanstalk:environment
+        OptionName: EnvironmentType
+        Value: LoadBalanced
+
+      SolutionStackName: 64bit Amazon Linux 2016.09 v2.5.2 running Multi-container Docker 1.12.6 (Generic)
+
+  # the beanstalk environment. We only have one, but in a real app we would
+  # likely want some dev/staging environments.
+  whodisEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      ApplicationName: !Ref whodis
+      Description: whodis environment
+      TemplateName: !Ref whodisConfigurationTemplate
+
+  # our ECR docker image registry: our build/deploy process pushes images
+  # here, and then they are pulled by the ECS instances during deploy.
+  whodisDockerRepository:
+    Type: "AWS::ECR::Repository"
+    Properties:
+      RepositoryName: "whodis"
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: AllowPushPull
+            Effect: Allow
+            Principal:
+              AWS:
+                # Important: the parameterized IamUser we pass in is allowed
+                # to push images to the registry.
+                - !Ref IamUser
+            Action:
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+
+  # bucket for app manifests
+  whodisDeployBucket:
+    Type: AWS::S3::Bucket
+
+  # the IAM role assigned to our Beanstalk-launched ECS instances.
+  whodisRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Effect: Allow
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
+      Policies:
+        -
+          PolicyName: "ecs-service"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Sid: AllowEbAuth
+                Effect: Allow
+                Action:
+                  - "ecs:CreateCluster"
+                  - "ecs:DeregisterContainerInstance"
+                  - "ecs:DiscoverPollEndpoint"
+                  - "ecs:Poll"
+                  - "ecs:RegisterContainerInstance"
+                  - "ecs:StartTelemetrySession"
+                  - "ecs:Submit*"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:GetAuthorizationToken"
+                Resource:
+                  - "*"
+
+  whodisInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Roles:
+        - !Ref whodisRole
+
+Outputs:
+  whodisDeployBucket:
+    Value: !Ref whodisDeployBucket
