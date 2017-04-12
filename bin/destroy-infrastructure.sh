@@ -8,7 +8,7 @@ source $WHODIS_ROOT/bin/.common.sh
 echoBanner "Emptying bucket and repository"
 DEPLOY_BUCKET=$(getStackResourceId whodisDeployBucket)
 aws s3 rm s3://${DEPLOY_BUCKET} --recursive
-aws ecr delete-repository --force --repository-name whodis
+aws ecr delete-repository --force --repository-name whodis --output table
 
 echoBanner "Destroying CloudFormation stack"
 aws cloudformation delete-stack --stack-name whodis --output table
