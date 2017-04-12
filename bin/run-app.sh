@@ -13,4 +13,4 @@ echoBanner "Building Docker image"
 docker build -t whodis .
 
 echoBanner "Running whodis container: http://localhost:$WHODIS_PORT"
-docker run --rm -it -p${WHODIS_PORT}:80 whodis:latest
+docker run --rm -it -p ${WHODIS_PORT}:80 whodis:latest
