@@ -54,23 +54,14 @@ else
         --version-label ${VERSION} --output table
 fi
 
+waitForEnvReady $EB_ENVIRONMENT
 
 echoBanner "Updating Elastic Beanstalk environment"
 aws elasticbeanstalk update-environment --version-label ${VERSION} \
     --environment-name ${EB_ENVIRONMENT} --output table
 
 
-echoBanner "Waiting for environment to be ready"
-let attempts=1
-until [[ "$(getEnvStatus ${EB_ENVIRONMENT})" = "Ready" ]]; do
-    if [[ $attempt_num -ge 60 ]]; then
-        echo "Timed out waiting for environment to be ready. Did deploy fail?"
-        exit 1
-    else
-        sleep 10
-        attempts=`expr $attempts + 1`
-    fi
-done
+waitForEnvReady $EB_ENVIRONMENT
 
 
 echoBanner "Successfully deployed to: $(getEnvUrl $EB_ENVIRONMENT)"

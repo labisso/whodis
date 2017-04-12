@@ -21,6 +21,20 @@ function getEnvUrl() {
     --query Environments[0].CNAME --output text)"
 }
 
+function waitForEnvReady() {
+    echoBanner "Waiting for environment to be ready"
+    let attempts=1
+    until [[ "$(getEnvStatus ${1})" = "Ready" ]]; do
+        if [[ $attempt_num -ge 60 ]]; then
+            echo "Timed out waiting for environment to be ready. Did deploy fail?"
+            exit 1
+        else
+            sleep 10
+            attempts=`expr $attempts + 1`
+        fi
+    done
+}
+
 function echoBanner() {
     echo ""
     echo "***********************************************************************"
