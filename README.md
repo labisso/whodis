@@ -3,7 +3,7 @@ WHODIS
 
 Whodis is a sample app built to demonstrate the use of AWS CloudFormation and
 Elastic Beanstalk for deploying a Docker-based app. The app itself provides a
-very simple "What's my IP?" REST API
+very simple "What's my IP?" REST API.
 
 ![](https://media.tenor.co/images/8029940a475103b4a752b40953af3c68/tenor.gif)
 
@@ -12,8 +12,8 @@ Setup
 -----
 
 To run and deploy this app, you must have recent versions of the following:
-* *Docker* (Docker for Mac is fine)
-* *AWS CLI* must be configured with IAM credentials and a default region
+* **Docker** (Docker for Mac is fine)
+* **AWS CLI** must be configured with IAM credentials and a default region
 
 Note: you must be on Linux or a macOS.
 
@@ -42,16 +42,16 @@ Running on AWS
 
 Whodis uses several AWS services, all deployed with CloudFormation. The basic
 rundown is:
-* *Elastic Beanstalk* provides the foundation of the app.
-* *Elastic Container Service* is deployed and managed by beanstalk, and
+* **Elastic Beanstalk** provides the foundation of the app.
+* **Elastic Container Service** is deployed and managed by beanstalk, and
   provides the Docker execution platform.
-* *Elastic Load Balancer* is also automatically deployed and managed by
+* **Elastic Load Balancer** is also automatically deployed and managed by
   beanstalk, and provides HTTP load balancing and health checks.
-* An *Elastic Container Registry* is deployed separately by CloudFormation,
+* An **Elastic Container Registry** is deployed separately by CloudFormation,
   and is used to host the Docker images. It is pushed to by the build, and
   pulled by the ECS instances.
-* An *S3* bucket is used to store Beanstalk deployment manifests.
-* *IAM roles and policies* are used to wire together the authorization between
+* An **S3** bucket is used to store Beanstalk deployment manifests.
+* **IAM** roles and policies are used to wire together the authorization between
   the services.
 
 
