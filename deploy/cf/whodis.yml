@@ -7,6 +7,10 @@ Parameters:
 
 Resources:
 
+##############################################################################
+# ELASTIC BEANSTALK
+##############################################################################
+
   # the top-level beanstalk application. It deploys an ECS cluster in an
   # autoscaling group, and connects up an ELB.
   whodis:
@@ -36,8 +40,28 @@ Resources:
         Value: !Ref whodisInstanceProfile
 
       - Namespace: aws:elasticbeanstalk:environment
+        OptionName: ServiceRole
+        Value: !Ref beanstalkServiceRole
+
+      - Namespace: aws:elasticbeanstalk:environment
         OptionName: EnvironmentType
         Value: LoadBalanced
+
+      - Namespace: aws:elasticbeanstalk:healthreporting:system
+        OptionName: SystemType
+        Value: enhanced
+
+      - Namespace: aws:elasticbeanstalk:application
+        OptionName: Application Healthcheck URL
+        Value: "/"
+
+      - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        OptionName: StreamLogs
+        Value: "true"
+
+      - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        OptionName: DeleteOnTerminate
+        Value: "true"
 
       SolutionStackName: 64bit Amazon Linux 2016.09 v2.5.2 running Multi-container Docker 1.12.6 (Generic)
 
@@ -49,6 +73,11 @@ Resources:
       ApplicationName: !Ref whodis
       Description: whodis environment
       TemplateName: !Ref whodisConfigurationTemplate
+
+
+##############################################################################
+# DEPLOYMENT REPOSITORIES
+##############################################################################
 
   # our ECR docker image registry: our build/deploy process pushes images
   # here, and then they are pulled by the ECS instances during deploy.
@@ -79,6 +108,28 @@ Resources:
   # bucket for app manifests
   whodisDeployBucket:
     Type: AWS::S3::Bucket
+
+
+##############################################################################
+# IAM
+##############################################################################
+
+  # the IAM service role used by Beanstalk to allow enhanced health checking
+  beanstalkServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service:
+                - "elasticbeanstalk.amazonaws.com"
+            Effect: Allow
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
 
   # the IAM role assigned to our Beanstalk-launched ECS instances.
   whodisRole:
@@ -128,7 +179,3 @@ Resources:
     Properties:
       Roles:
         - !Ref whodisRole
-
-Outputs:
-  whodisDeployBucket:
-    Value: !Ref whodisDeployBucket

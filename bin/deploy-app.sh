@@ -1,37 +1,25 @@
 #!/bin/bash -e
 
-if [ $# -ne 1 ] || [ -z "$1" ]; then
-    echo "Usage: $0 VERSION"
+if [ $# -gt 1 ]; then
+    echo "Usage: $0 [VERSION]"
     echo "    VERSION: a string used to identify the version"
     exit 1
 fi
 
 VERSION=$1
 WHODIS_ROOT="$(dirname "$(dirname "$(readlink "$0")")")"
-STACK_NAME="whodis"
 
+if [ -z "$VERSION"]; then
+    VERSION=$(date +%s)
+fi
 
-function getStackResourceId() {
-    set +e
-    aws --output json cloudformation describe-stack-resources --stack-name ${STACK_NAME} \
-        --logical-resource-id $1 --output text --query 'StackResources[].PhysicalResourceId'
-    if [ $? -ne 0 ]; then
-        echo "Stack resource not found. Did you deploy the infrastructure?" >&2
-        exit 1
-    fi
-    set -e
-}
-
-function echoBanner() {
-    echo ""
-    echo "***********************************************************************"
-    echo $1
-    echo "***********************************************************************"
-}
+source $WHODIS_ROOT/bin/.common.sh
 
 APP_NAME=$(getStackResourceId whodis)
 DEPLOY_BUCKET=$(getStackResourceId whodisDeployBucket)
 EB_ENVIRONMENT=$(getStackResourceId whodisEnvironment)
+
+echoBanner "Deploying version ${VERSION}"
 
 VERSION_EXISTS=$(aws elasticbeanstalk describe-application-versions \
     --application-name ${APP_NAME} --version-labels ${VERSION} \
@@ -70,3 +58,19 @@ fi
 echoBanner "Updating Elastic Beanstalk environment"
 aws elasticbeanstalk update-environment --version-label ${VERSION} \
     --environment-name ${EB_ENVIRONMENT} --output table
+
+
+echoBanner "Waiting for environment to be ready"
+let attempts=1
+until [[ "$(getEnvStatus ${EB_ENVIRONMENT})" = "Ready" ]]; do
+    if [[ $attempt_num -ge 60 ]]; then
+        echo "Timed out waiting for environment to be ready. Did deploy fail?"
+        exit 1
+    else
+        sleep 10
+        attempts=`expr $attempts + 1`
+    fi
+done
+
+
+echoBanner "Successfully deployed to: $(getEnvUrl $EB_ENVIRONMENT)"
