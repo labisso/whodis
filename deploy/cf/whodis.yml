@@ -38,7 +38,9 @@ Resources:
       - Namespace: aws:autoscaling:launchconfiguration
         OptionName: IamInstanceProfile
         Value: !Ref whodisInstanceProfile
-
+      - Namespace: aws:autoscaling:updatepolicy:rollingupdate
+        OptionName: RollingUpdateType
+        Value: Immutable
       - Namespace: aws:elasticbeanstalk:environment
         OptionName: ServiceRole
         Value: !Ref beanstalkServiceRole
@@ -63,7 +65,7 @@ Resources:
         OptionName: DeleteOnTerminate
         Value: "true"
 
-      SolutionStackName: 64bit Amazon Linux 2016.09 v2.5.2 running Multi-container Docker 1.12.6 (Generic)
+      SolutionStackName: 64bit Amazon Linux 2017.03 v2.7.3 running Multi-container Docker 17.03.1-ce (Generic)
 
   # the beanstalk environment. We only have one, but in a real app we would
   # likely want some dev/staging environments.

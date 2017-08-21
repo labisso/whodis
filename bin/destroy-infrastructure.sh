@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 WHODIS_ROOT="$(dirname "$(dirname "$(readlink "$0")")")"
 
